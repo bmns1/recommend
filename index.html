@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVA Scholarship — Confidential Recommendation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+    :root {
+        --clr-forest: #1a3c34;
+        --clr-sage: #4a7c6f;
+        --clr-gold: #c9a84c;
+        --clr-gold-light: #f5ecd0;
+        --clr-cream: #faf8f3;
+    }
+
+    body {
+        font-family: 'DM Sans', sans-serif;
+        background: var(--clr-cream);
+        color: #2d3436;
+    }
+
+    h1, h2, h3 {
+        font-family: 'Lora', serif;
+    }
+
+    .card {
+        background: #fff;
+        border: 1px solid #e8e3d8;
+        border-radius: 1rem;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: .65rem .85rem;
+        border-radius: .5rem;
+        border: 1.5px solid #d4cfc4;
+        background: #fff;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--clr-gold);
+        box-shadow: 0 0 0 3px rgba(201, 168, 76, .15);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--clr-forest), var(--clr-sage));
+        color: #fff;
+        padding: .75rem 2rem;
+        border-radius: .5rem;
+        font-weight: 600;
+    }
+
+    .btn-primary:disabled {
+        opacity: .5;
+        cursor: not-allowed;
+    }
+
+    .rubric-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .rubric-table th {
+        background: var(--clr-gold-light);
+        padding: .75rem;
+        text-align: center;
+        font-size: .75rem;
+        font-weight: 700;
+        color: var(--clr-forest);
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .rubric-table th:first-child {
+        text-align: left;
+    }
+
+    .rubric-table td {
+        padding: .75rem;
+        border-top: 1px solid #f0ebe1;
+        text-align: center;
+    }
+
+    .rubric-table td:first-child {
+        text-align: left;
+        font-weight: 500;
+    }
+
+    .rubric-table td small {
+        color: #888;
+        font-weight: 400;
+        font-size: .75rem;
+        display: block;
+    }
+
+    .rubric-table input[type=radio] {
+        accent-color: var(--clr-forest);
+        transform: scale(1.2);
+    }
+
+    .radio-row label {
+        display: block;
+        padding: .5rem 0;
+        cursor: pointer;
+    }
+
+    .radio-row input {
+        margin-right: .5rem;
+        accent-color: var(--clr-forest);
+    }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- ────────── CONFIG (one-time, stored in localStorage) ────────── -->
+    <div id="configBar" class="bg-amber-100 border-b border-amber-300 p-2 text-xs text-center hidden">
+        <span class="mr-2">Backend URL not set:</span>
+        <input id="backendUrl" class="form-input inline-block max-w-md text-xs" placeholder="https://script.google.com/macros/s/.../exec">
+        <button onclick="saveBackend()" class="bg-white border border-amber-400 px-3 py-1 rounded ml-1">Save</button>
+    </div>
+
+    <main class="max-w-3xl mx-auto p-4 md:p-8">
+
+        <!-- Loading -->
+        <div id="loadingView" class="text-center py-20">
+            <div class="inline-block w-10 h-10 border-4 border-gray-300 border-t-[var(--clr-forest)] rounded-full animate-spin"></div>
+            <p class="mt-4 text-gray-600">Verifying your secure link…</p>
+        </div>
+
+        <!-- Error -->
+        <div id="errorView" class="hidden card p-8 text-center">
+            <div class="text-5xl mb-3">⚠️</div>
+            <h2 class="text-xl mb-2" style="color:var(--clr-forest);">Unable to open this link</h2>
+            <p id="errorMsg" class="text-gray-600"></p>
+            <p class="mt-4 text-sm text-gray-500">
+                If you believe this is an error, please email 
+                <a href="mailto:scholarship@svaschool.org" class="text-[var(--clr-sage)] underline">scholarship@svaschool.org</a>
+                .
+            </p>
+        </div>
+
+        <!-- Success -->
+        <div id="successView" class="hidden card p-10 text-center">
+            <div class="text-5xl mb-3">✓</div>
+            <h2 class="text-2xl mb-2" style="color:var(--clr-forest);">Thank you!</h2>
+            <p class="text-gray-700">Your recommendation has been submitted confidentially to the SVA Scholarship Committee.</p>
+            <p class="mt-3 text-sm text-gray-500">You may now close this window.</p>
+        </div>
+
+        <!-- Form -->
+        <div id="formView" class="hidden">
+            <div class="text-center mb-6">
+                <div class="inline-block px-3 py-1 rounded-full text-xs font-bold mb-3" style="background:var(--clr-gold-light);color:var(--clr-forest);">CONFIDENTIAL EVALUATION</div>
+                <h1 class="text-3xl" style="color:var(--clr-forest);">SVA Scholarship Program</h1>
+                <p class="text-gray-600 mt-1" id="trackTitle"></p>
+            </div>
+
+            <div class="card p-6 mb-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="text-gray-500 text-xs block">STUDENT</span>
+                        <strong id="fStudent"></strong>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 text-xs block">TRACK</span>
+                        <strong id="fTrack"></strong>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 text-xs block">RECOMMENDER</span>
+                        <strong id="fTeacher"></strong>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 text-xs block">SCHOOL</span>
+                        <strong id="fSchool"></strong>
+                    </div>
+                </div>
+            </div>
+
+            <form id="recForm" class="card p-6 space-y-6" onsubmit="return submitForm(event)">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Your relationship to the student</label>
+                    <input name="relationship" required class="form-input" placeholder="e.g., Homeroom teacher, Math teacher, Coach">
+                </div>
+
+                <!-- Track-specific section injected here -->
+                <div id="trackSection"></div>
+
+                <!-- Signature -->
+                <div class="pt-4 border-t border-gray-200">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Signature (type full name)</label>
+                            <input name="signature" required class="form-input" style="font-family:'Lora',serif;font-style:italic;">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Date</label>
+                            <input name="date" required type="date" class="form-input" id="dateInput">
+                        </div>
+                    </div>
+                    <label class="flex items-start gap-2 mt-4 text-sm text-gray-700">
+                        <input type="checkbox" required class="mt-1">
+                        <span>I certify that the information I have provided is truthful, based on my direct observation of the student, and submitted confidentially to the SVA Scholarship Committee.</span>
+                    </label>
+                </div>
+
+                <div class="pt-2 text-right">
+                    <button type="submit" id="submitBtn" class="btn-primary">Submit Recommendation</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script>
+    let BACKEND_URL = localStorage.getItem("sva_backend_url") || "";
+    let recToken = null;
+    let formMeta = null;
+
+    // ── Rubrics from the 3 PDFs ──
+    const RATING_4 = ["Below Average", "Average", "Good (Top 25%)", "Exceptional (Top 10%)", "No Basis"];
+    const RATING_3 = ["Consistently", "Sometimes", "Rarely"];
+    const RATING_3B = ["Consistently", "Emerging (Sometimes)", "Needs Support"];
+
+    const TRACKS = {
+        "Budding Scholar": {
+            subtitle: "Budding Scholar · Citizenship Checklist (K–2)",
+            table: {
+                title: "PART I: Social-Emotional Readiness",
+                options: RATING_3B,
+                rows: [
+                ["social", "Social Interaction", "Plays well with others, shares materials"],
+                ["emotion", "Emotional Regulation", "Can calm down after being upset"],
+                ["norms", "Classroom Norms", "Follows simple instructions, respects space"],
+                ["effort", "Effort", "Participates in class activities appropriately"]
+                ]
+            },
+            radios: [
+            {
+                key: "family",
+                label: "PART II: Family Engagement",
+                sub: "Does the family generally support the student's education?",
+                options: ["Yes, supportive", "Inconsistent", "No / Disengaged"]
+            },
+            {
+                key: "overall",
+                label: "PART III: Recommendation",
+                options: [
+                "Recommended (positive addition to the class)",
+                "Conditional (needs specific behavioral goals)",
+                "Not Recommended (significant concerns)"
+                ]
+            }
+            ]
+        },
+
+        "Junior Innovator": {
+            subtitle: "Junior Innovator · Teacher Character Assessment (3–5)",
+            table: {
+                title: "PART I: The \"Grit\" Scale",
+                options: RATING_3,
+                rows: [
+                ["responsibility", "Responsibility", "Remembers homework, takes care of supplies"],
+                ["kindness", "Kindness", "Includes others, uses polite language"],
+                ["resilience", "Resilience", "Keeps trying when work gets hard/boring"],
+                ["selfcontrol", "Self-Control", "Works independently without constant reminders"]
+                ]
+            },
+            radios: [
+            {
+                key: "infractions",
+                label: "PART II: Behavioral Infractions",
+                sub: "Has this student had any major behavioral infractions this year?",
+                options: ["No", "Yes"],
+                explainOn: "Yes"
+            },
+            {
+                key: "extramile",
+                label: "The \"Extra Mile\"",
+                sub: "Does this student do more than what is required?",
+                options: ["Yes, frequently", "Occasionally", "No, they generally stick to their own tasks"]
+            },
+            {
+                key: "endorsement",
+                label: "PART III: Teacher Endorsement",
+                sub: "Do you support this student receiving the Junior Innovator Scholarship?",
+                options: ["Yes, I support this", "Yes, with some hesitation", "No"]
+            }
+            ]
+        },
+
+        "Future Leader": {
+            subtitle: "Future Leaders · Confidential Recommendation (6–8)",
+            table: {
+                title: "PART I: Character Assessment",
+                options: RATING_4,
+                rows: [
+                ["integrity", "Integrity", "Honesty, trustworthiness"],
+                ["resilience", "Resilience", "Reaction to setbacks/correction"],
+                ["leadership", "Leadership", "Initiative, influence on peers"],
+                ["respect", "Respect", "For teachers and peers"],
+                ["service", "Service", "Willingness to help others"]
+                ]
+            },
+            textareas: [
+            {
+                key: "snapshot",
+                label: "PART II — Snapshot",
+                sub: "Describe one specific time you saw this student demonstrate leadership or kindness. (2–3 sentences max)",
+                rows: 4
+            }
+            ],
+            radios: [
+            {
+                key: "obligations",
+                label: "Work & Obligations",
+                sub: "Does this student consistently turn in work and meet obligations?",
+                options: ["Yes", "Usually", "No"]
+            },
+            {
+                key: "overall",
+                label: "Overall Recommendation",
+                options: [
+                "I recommend with reservation",
+                "I recommend",
+                "I strongly recommend",
+                "I enthusiastically recommend (One of my top students)"
+                ]
+            }
+            ]
+        }
+    };
+
+    // ── Init ──
+    window.onload = () => {
+        document.getElementById("dateInput").value = new Date().toISOString().slice(0, 10);
+        if (!BACKEND_URL) {
+            document.getElementById("configBar").classList.remove("hidden");
+        }
+        const params = new URLSearchParams(location.search);
+        recToken = params.get("token");
+        if (!recToken) {
+            showError("Missing token in URL.");
+            return;
+        }
+        if (!BACKEND_URL) {
+            showError("Backend URL is not configured. Please set it above and reload this page.");
+            return;
+        }
+        loadForm();
+    };
+
+    function saveBackend() {
+        BACKEND_URL = document.getElementById("backendUrl").value.trim();
+        localStorage.setItem("sva_backend_url", BACKEND_URL);
+        location.reload();
+    }
+
+    async function callBackend(payload) {
+        const r = await fetch(BACKEND_URL, {
+            method: "POST",
+            body: JSON.stringify(payload),
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+            }
+        });
+        return r.json();
+    }
+
+    async function loadForm() {
+        try {
+            const r = await callBackend({
+                action: "getRecommenderForm",
+                recToken
+            });
+            if (r.status !== "success") {
+                showError(r.message);
+                return;
+            }
+            formMeta = r.data;
+            renderForm();
+        } catch (e) {
+            showError("Network error: " + e.message);
+        }
+    }
+
+    function showError(msg) {
+        document.getElementById("loadingView").classList.add("hidden");
+        document.getElementById("errorView").classList.remove("hidden");
+        document.getElementById("errorMsg").textContent = msg;
+    }
+
+    function renderForm() {
+        document.getElementById("loadingView").classList.add("hidden");
+        document.getElementById("formView").classList.remove("hidden");
+
+        const cfg = TRACKS[formMeta.track] || TRACKS["Future Leader"];
+        document.getElementById("trackTitle").textContent = cfg.subtitle;
+        document.getElementById("fStudent").textContent = formMeta.studentName || "";
+        document.getElementById("fTrack").textContent = formMeta.track || "";
+        document.getElementById("fTeacher").textContent = formMeta.teacherName || "";
+        document.getElementById("fSchool").textContent = formMeta.school || "";
+
+        let html = "";
+
+        // Rating table
+        if (cfg.table) {
+            html += `<div><h3 class="text-lg font-semibold mb-3" style="color:var(--clr-forest);">${cfg.table.title}</h3>`;
+            html += `<div class="overflow-x-auto"><table class="rubric-table"><thead><tr><th>Trait</th>`;
+            cfg.table.options.forEach(o => html += `<th>${o}</th>`);
+            html += `</tr></thead><tbody>`;
+            cfg.table.rows.forEach(([key, label, desc]) => {
+                html += `<tr><td><strong>${label}</strong><small>${desc}</small></td>`;
+                cfg.table.options.forEach(opt => {
+                    html += `<td><input type="radio" name="t_${key}" value="${opt}" required></td>`;
+                });
+                html += `</tr>`;
+            });
+            html += `</tbody></table></div></div>`;
+        }
+
+        // Textareas
+        (cfg.textareas || []).forEach(t => {
+            html += `<div><label class="block text-sm font-semibold mb-1">${t.label}</label>
+      <p class="text-xs text-gray-600 mb-2">${t.sub || ""}</p>
+      <textarea name="ta_${t.key}" rows="${t.rows || 3}" class="form-input" required></textarea></div>`;
+        });
+
+        // Radio groups
+        (cfg.radios || []).forEach(r => {
+            html += `<div class="radio-row"><h4 class="font-semibold" style="color:var(--clr-forest);">${r.label}</h4>`;
+            if (r.sub)
+                html += `<p class="text-xs text-gray-600 mb-2">${r.sub}</p>`;
+            r.options.forEach(opt => {
+                html += `<label><input type="radio" name="r_${r.key}" value="${opt}" required>${opt}</label>`;
+            });
+            if (r.explainOn) {
+                html += `<input name="r_${r.key}_explain" class="form-input mt-2" placeholder="If yes, please briefly explain…">`;
+            }
+            html += `</div>`;
+        });
+
+        document.getElementById("trackSection").innerHTML = html;
+    }
+
+    async function submitForm(ev) {
+        ev.preventDefault();
+        const btn = document.getElementById("submitBtn");
+        btn.disabled = true;
+        btn.textContent = "Submitting…";
+        const fd = new FormData(ev.target);
+        const responses = {};
+        for (const [k, v] of fd.entries())
+            responses[k] = v;
+        responses._track = formMeta.track;
+        responses._student = formMeta.studentName;
+        responses._recommender = formMeta.teacherName;
+        responses._recommenderEmail = formMeta.teacherEmail;
+
+        try {
+            const r = await callBackend({
+                action: "submitRecommendation",
+                recToken,
+                responses
+            });
+            if (r.status !== "success") {
+                alert(r.message || "Submit failed.");
+                btn.disabled = false;
+                btn.textContent = "Submit Recommendation";
+                return false;
+            }
+            document.getElementById("formView").classList.add("hidden");
+            document.getElementById("successView").classList.remove("hidden");
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+        } catch (e) {
+            alert("Network error: " + e.message);
+            btn.disabled = false;
+            btn.textContent = "Submit Recommendation";
+        }
+        return false;
+    }
+    </script>
+</body>
+</html>
